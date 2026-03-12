@@ -27,7 +27,7 @@
  *   // => { totalChai: 0, totalRevenue: 0 }
  */
 export function chaiTapriRevenue(customers) {
-  // doing validation
+  // validation
   if(!Number.isInteger(customers) || customers <0) return {totalChai:0, totalRevenue:0};
 
 let totalRevenue = 0;

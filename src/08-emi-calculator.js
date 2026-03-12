@@ -43,40 +43,62 @@
  */
 export function calculateEMI(principal, monthlyRate, emi) {
 
-  if (
-    typeof principal !== "number" || principal <= 0 ||
-    typeof monthlyRate !== "number" || monthlyRate <= 0 ||
-    typeof emi !== "number" || emi <= 0
-  ) {
-    return { months: -1, totalPaid: -1, totalInterest: -1 }
-  }
-
-  let remaining = principal;
-  let months = 0;
-  let totalPaid = 0;
-  let totalInterest = 0;
-
-  while (remaining > 0.01) {
-
-    let interest = remaining * monthlyRate;
-
-    if (emi <= interest) {
-      return { months: -1, totalPaid: -1, totalInterest: -1 };
+    // Validation
+    if (principal <= 0 || monthlyRate < 0 || emi <= 0 || 
+        isNaN(principal) || isNaN(monthlyRate) || isNaN(emi)) {
+        return { months: -1, totalPaid: -1, totalInterest: -1 };
     }
 
-    remaining += interest;
-    totalInterest += interest;
-
-    if (remaining <= emi) {
-      totalPaid += remaining;
-      remaining = 0;
-    } else {
-      remaining -= emi;
-      totalPaid += emi;
+    //  check for infinite loop condition
+    const firstMonthInterest = principal * monthlyRate;
+    if (emi <= firstMonthInterest) {
+        return { months: -1, totalPaid: -1, totalInterest: -1 };
     }
 
-    months++;
-  }
+    let remaining = principal;
+    let months = 0;
+    let totalPaid = 0;
+    let totalInterest = 0;
 
-  return { months, totalPaid, totalInterest };
+    while (remaining > 0) {
+        months++;
+
+        //  Calculate interest on current remaining balance
+        const interestThisMonth = remaining * monthlyRate;
+        totalInterest += interestThisMonth;
+
+        //  Add interest to remaining balance
+        remaining += interestThisMonth;
+
+        //  Decide how much to pay this month
+        let paymentThisMonth;
+
+        if (remaining < emi) {
+            // Last month - pay only what's left
+            paymentThisMonth = remaining;
+        } else {
+            // Normal month - pay full EMI
+            paymentThisMonth = emi;
+        }
+
+        //  Deduct payment
+        remaining -= paymentThisMonth;
+
+        //Track total paid
+        totalPaid += paymentThisMonth;
+
+        // Safety: prevent potential infinite loop due to floating point issues
+        if (months > 1200) { // max ~100 years
+            return { months: -1, totalPaid: -1, totalInterest: -1 };
+        }
+    }
+
+    // Round numbers to avoid floating point mess (2 decimal places)
+    return {
+        months: months,
+        totalPaid: Number(totalPaid.toFixed(2)),
+        totalInterest: Number(totalInterest.toFixed(2))
+    };
 }
+
+
